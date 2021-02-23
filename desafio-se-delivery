@@ -1,0 +1,129 @@
+###############################################################################
+# function bucket_exists
+#
+# This function checks to see if the specified bucket already exists.
+#
+# Parameters:
+#       $1 - The name of the bucket to check
+# 
+# Returns:
+#       0 if the bucket already exists
+#       1 if the bucket doesn't exist
+###############################################################################
+function bucket_exists {
+    ale-teste01=$1
+
+    # Check whether the bucket already exists. 
+    # We suppress all output - we're interested only in the return code.
+
+    aws s3api head-bucket \
+        --bucket $ale-teste01 \
+        >/dev/null 2>&1
+
+    if [[ ${?} -eq 0 ]]; then
+        return 0        # 0 in Bash script means true.
+    else
+        return 1        # 1 in Bash script means false.
+    fi
+}
+###############################################################################
+# function create-bucket
+#
+# This function creates the specified bucket in the specified AWS Region, unless
+# it already exists.
+# 
+# Parameters:
+#       -b ale-teste01  -- The name of the bucket to create
+#       -r region_code  -- The code for an AWS Region in which to 
+#                          create the bucket
+# 
+# Returns:
+#       The URL of the bucket that was created.
+#     And:
+#       0 if successful
+#       1 if it fails
+##############################################################################
+# function list_items_in_bucket
+#
+# This function displays a list of the files in the bucket with each file's 
+# size. The function uses the --query parameter to retrieve only the Key and 
+# Size fields from the Contents collection.
+#
+# Parameters:
+#       $1 - The name of the bucket
+# 
+# Returns:
+#       The list of files in text format
+#     And:
+#       0 if successful
+#       1 if it fails
+###############################################################################
+function list_items_in_bucket {
+    liib_ale-teste01=$1
+    local RESPONSE
+
+    RESPONSE=$(aws s3api list-objects \
+                --bucket $liib_ale-teste01 \
+                --output text \
+                --query 'Contents[].{Key: Key, Size: Size}' )
+
+    if [[ ${?} -eq 0 ]]; then
+        echo "$RESPONSE"
+    else
+        errecho "ERROR: AWS reports s3api list-objects operation failed.\n$RESPONSE"
+        return 1
+    fi
+}
+
+###############################################################################
+# function delete_item_in_bucket
+#
+# This function deletes the specified file from the specified bucket. 
+#
+# Parameters:
+#       $1 - The name of the bucket
+#       $2 - The key (file name) in the bucket to delete
+
+# Returns:
+#       0 if successful
+#       1 if it fails
+###############################################################################
+function delete_item_in_bucket {
+    diib_ale-teste01=$1
+    diib_key=$2
+    local RESPONSE
+    
+    RESPONSE=$(aws s3api delete-object \
+                --bucket $diib_ale-teste01 \
+                --key $diib_key)
+
+    if [[ $? -ne 0 ]]; then
+        errecho "ERROR:  AWS reports s3api delete-object operation failed.\n$RESPONSE"
+        return 1
+    fi
+}
+
+###############################################################################
+# function delete_bucket
+#
+# This function deletes the specified bucket.
+#
+# Parameters:
+#       $1 - The name of the bucket
+
+# Returns:
+#       0 if successful
+#       1 if it fails
+###############################################################################
+ function delete_bucket {
+    db_ale-teste01=$1
+    local RESPONSE
+
+    RESPONSE=$(aws s3api delete-bucket \
+                --bucket $db_ale-teste01)
+
+    if [[ $? -ne 0 ]]; then
+        errecho "ERROR: AWS reports s3api delete-bucket failed.\n$RESPONSE"
+        return 1
+    fi
+}
